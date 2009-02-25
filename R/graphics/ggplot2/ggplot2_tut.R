@@ -1,6 +1,10 @@
 library(ggplot2)
 library(plyr)
 
+## get an interactive window
+quartz()
+## x11()
+
 ## lexical decision data
 data(english, package="languageR")
 
@@ -20,42 +24,42 @@ qplot(WrittenFrequency, RTlexdec, data=english,
       colour=WrittenSpokenFrequencyRatio)
 
 ## shape for groups
-qplot(x = WrittenFrequency, y = log(RTlexdec), data = english,
+qplot(x = WrittenFrequency, y = RTlexdec, data = english,
       shape=AgeSubject)
 
 ## colour and shape for groups
-qplot(x = WrittenFrequency, y = log(RTlexdec), data = english,
+qplot(x = WrittenFrequency, y = RTlexdec, data = english,
       colour=AgeSubject,
       shape=WordCategory)
 
 ## colour, shape, and size
-qplot(x = WrittenFrequency, y = log(RTlexdec), data = english,
+qplot(x = WrittenFrequency, y = RTlexdec, data = english,
       colour=AgeSubject,
       shape=WordCategory,
       size=FamilySize)
 
 ## panels
 ## one conditioning variable
-qplot(x = WrittenFrequency, y = log(RTlexdec), data = english,
+qplot(x = WrittenFrequency, y = RTlexdec, data = english,
       colour=AgeSubject,
       shape=Frication,
       facets = . ~ WordCategory)
 
 ## panels with totals shown
-qplot(x = WrittenFrequency, y = log(RTlexdec), data = english,
+qplot(x = WrittenFrequency, y = RTlexdec, data = english,
       colour=AgeSubject,
       shape=AgeSubject,
       facets = . ~ WordCategory,
       margins=TRUE)
 
 ## two conditioning variables
-qplot(x = WrittenFrequency, y = log(RTlexdec), data = english,
+qplot(x = WrittenFrequency, y = RTlexdec, data = english,
       colour=AgeSubject,
       shape=Frication,
       facets = CV ~ WordCategory)
 
 ## panels with totals shown
-qplot(x = WrittenFrequency, y = log(RTlexdec), data = english,
+qplot(x = WrittenFrequency, y = RTlexdec, data = english,
       colour=AgeSubject,
       shape=Frication,
       facets = CV ~ WordCategory,
@@ -70,15 +74,30 @@ qplot(x = RTlexdec, data = english,
       geom = "histogram",
       fill=AgeSubject)
 
-## stacked bar charts are the default
+## stacked bar charts based on counts are the default
 qplot(x=WordCategory, data = english,
       geom = "bar",
       fill=Voice)
+
+## use "fill" positioning to convert them to proportions
+qplot(x=WordCategory, data = english,
+      geom = "bar",
+      fill=Voice,
+      position="fill")
 
 ## use "dodge" positioning to unstack them
 qplot(x=WordCategory, data = english,
       geom = "bar",
       fill=Voice,
+      position="dodge")
+
+## use stat="identity" if you've already aggregated your data and want
+## to plot the results
+d <- with(english, aggregate(RTlexdec, by=list(Age=AgeSubject, Category=WordCategory), FUN=mean))
+qplot(x=Age, y=x, data=d,
+      fill=Category,
+      geom="bar",
+      stat="identity",
       position="dodge")
 
 ## plots from scratch, without qplot
@@ -89,42 +108,38 @@ bxp <- bxp + stat_boxplot(aes(fill=WordCategory))
 (bxp)
 
 ## barplot of means
-bpm <- ggplot(data=english, aes(x=AgeSubject, y=RTlexdec))
+bpm <- ggplot(data=english, aes(x=AgeSubject, y=RTlexdec, fill=WordCategory))
 bpm <- bpm +
-  stat_summary(fun=mean, geom="bar", aes(fill=WordCategory), pos="dodge")
+  stat_summary(fun.y=mean, geom="bar", pos="dodge")
 (bpm)
 
 ## change the scale on the y axis to zoom in on the relevant region of
 ## the data
 ## NB:  If you don't want to show the entire range starting 
 ## from 0, you should consider using a dot plot instead of a bar plot
-## barplot with error bars computed on the fly
-
 bpm <- bpm + scale_y_continuous(limits=c(5,7))
 (bpm)
 
 ## bar plot with automatically calculated normal error bars
-bpe <- ggplot(data=english, aes(x=AgeSubject, y=RTlexdec))
-bpe <- bpe + stat_summary(fun="mean", geom="bar", pos="dodge")
-bpe <- bpe + stat_summary(fun="mean_cl_normal", geom="errorbar", width=0.2)
+bpe <- ggplot(data=english, aes(x=AgeSubject, y=RTlexdec, fill=WordCategory))
+bpe <- bpe + stat_summary(fun.y="mean", geom="bar", pos="dodge")
+bpe <- bpe + stat_summary(fun.data="mean_cl_normal", geom="errorbar", width=0.2)
 (bpe)
 
 ## dot plot of means
-dpm <- ggplot(data=english, aes(x=AgeSubject, y=RTlexdec))
-dpm <- dpe + stat_summary(fun="mean", geom="point")
+dpm <- ggplot(data=english, aes(x=AgeSubject, y=RTlexdec, colour=WordCategory))
+dpm <- dpm + stat_summary(fun.y="mean", geom="point")
 (dpm)
 
-## dot plot of means with 95% quantiles
-dpm <- ggplot(data=english, aes(x=AgeSubject, y=RTlexdec,
-                ymin=quantile(RTlexdec, .025),
-                ymax=quantile(RTlexdec, .975)))
-dpm <- dpm + stat_summary(fun="mean", geom="point", size=3)
-dpm <- dpm + geom_linerange()
-(dpm)
+## dot plot of means with error bars of 2*sd
+dpe <- ggplot(data=english,
+              aes(x=AgeSubject, y=RTlexdec, colour=WordCategory))
+dpe <- dpe + stat_summary(fun.data="mean_sdl", geom="pointrange")
+(dpe)
 
 ## horizontal dotplot, often used to display regression parameters
-dpm <- dpm + coord_flip()
-(dpm)
+dpe <- dpe + coord_flip()
+(dpe)
 
 ## xyplot with grouping by color
 xy.tr <- ggplot(data=english, aes(x=WrittenFrequency, y=RTlexdec, colour=AgeSubject))
@@ -157,6 +172,6 @@ last_plot() + opts(title = "Frequency Effects",
 ## finally, let's make a hexbinplot
 hbp <- ggplot(english, aes(x=WrittenFrequency, y=RTlexdec)) +
   stat_binhex() +
-  stat_smooth(method=rlm) +
+  stat_smooth(method=rlm, colour=I("orange"), size=1.5) +
   opts(panel.background=theme_blank())
 hbp
