@@ -1,0 +1,28 @@
+var
+Y[I,J],                         # observations[conditions, outcomes]
+S[I],                           # totals[conditions]
+C[I,J],                         # params to dirichlet prior [conditions, outcomes]
+Prior[I,J],                     # dirichlet prior
+X[D,J],                         # predictors
+B[D,J];                         # regression coefficients
+
+model {
+  for (i in 1:I) {
+    B[i,1] <- 0;
+  }
+  for (i in 1:I) {
+    for (j in 2:J) {
+      B[i,j] ~ dnorm(0, .0001);
+    }
+  }
+
+  for (i in 1:I) {
+    Y[i,] <- Y.hat[i,] * Prior[i,];
+    Y.hat[i,] ~ dmulti(p[i,], S[i]);
+    Prior[i,] ~ ddirch(C[i,]);
+    for (j in 1:J) {
+      logit(p[i,j]) <- XB[i,j];
+      XB[i,j] <- inprod(X[i,], B[i,]);
+    }
+  }
+}

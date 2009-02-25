@@ -1,0 +1,5 @@
+var
+Y[I,J],                         # observations[conditions, outcomes]
+C[I,J],                         # priors[conditions, outcomes]
+X[D,J],                         # predictors
+B[D,J];                          # regression coefficients
